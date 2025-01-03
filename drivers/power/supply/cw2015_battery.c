@@ -25,7 +25,6 @@
 #include <linux/power/cw2015_battery.h>
 
 static int dbg_enable;
-static bool cw2015_exit_flag = 1;
 module_param_named(dbg_level, dbg_enable, int, 0644);
 
 #define cw_printk(args...) \
@@ -37,26 +36,17 @@ module_param_named(dbg_level, dbg_enable, int, 0644);
 
 static int cw_read(struct i2c_client *client, u8 reg, u8 buf[])
 {
-	if(cw2015_exit_flag)
-		return i2c_smbus_read_i2c_block_data(client, reg, 1, buf);
-	else
-		return -1;
+	return i2c_smbus_read_i2c_block_data(client, reg, 1, buf);
 }
 
 static int cw_write(struct i2c_client *client, u8 reg, u8 const buf[])
 {
-	if(cw2015_exit_flag)
-		return i2c_smbus_write_i2c_block_data(client, reg, 1, &buf[0]);
-	else
-		return -1;
+	return i2c_smbus_write_i2c_block_data(client, reg, 1, &buf[0]);
 }
 
 static int cw_read_word(struct i2c_client *client, u8 reg, u8 buf[])
 {
-	if(cw2015_exit_flag)
-		return i2c_smbus_read_i2c_block_data(client, reg, 2, buf);
-	else
-		return -1;
+	return i2c_smbus_read_i2c_block_data(client, reg, 2, buf);
 }
 
 int cw_update_config_info(struct cw_battery *cw_bat)
@@ -624,8 +614,6 @@ static int cw_battery_get_property(struct power_supply *psy,
 		val->intval = cw_bat->capacity;
 		if (cw_bat->bat_mode == MODE_VIRTUAL)
 			val->intval = VIRTUAL_SOC;
-		if(!cw2015_exit_flag)
-			val->intval = 100;
 		break;
 	case POWER_SUPPLY_PROP_STATUS:
 		val->intval = cw_bat->status;
@@ -846,8 +834,7 @@ static int cw_bat_probe(struct i2c_client *client,
 	ret = cw_init(cw_bat);
 	if (ret) {
 		pr_err("%s cw_init error\n", __func__);
-		cw2015_exit_flag=0;
-		//return ret;
+		return ret;
 	}
 
 	psy_cfg.drv_data = cw_bat;
