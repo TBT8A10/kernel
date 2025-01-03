@@ -1,4 +1,4 @@
-
+/* SPDX-License-Identifier: GPL-2.0 */
 #if defined(WL_ESCAN)
 #include <bcmendian.h>
 #include <linux/if_arp.h>
@@ -206,7 +206,6 @@ static inline struct wl_bss_info *next_bss(struct wl_scan_results *list,
 		(struct wl_bss_info *)((uintptr) bss + dtoh32(bss->length)) : list->bss_info;
 }
 
-#if defined(ESCAN_RESULT_PATCH)
 static s32
 wl_escan_inform_bss(struct net_device *dev, struct wl_escan_info *escan)
 {
@@ -263,7 +262,6 @@ wl_escan_inform_bss(struct net_device *dev, struct wl_escan_info *escan)
 
 	return err;
 }
-#endif /* ESCAN_RESULT_PATCH */
 
 static wl_scan_params_t *
 wl_escan_alloc_params(struct net_device *dev, struct wl_escan_info *escan,
@@ -949,7 +947,6 @@ wl_escan_merge_scan_results(struct net_device *dev, struct wl_escan_info *escan,
 	char *event = extra, *end = extra + max_size - WE_ADD_EVENT_FIX, *value;
 	int16 rssi;
 	int channel;
-	chanspec_t chanspec;
 
 	/* overflow check cover fields before wpa IEs */
 	if (event + ETHER_ADDR_LEN + bi->SSID_len + IW_EV_UINT_LEN + IW_EV_FREQ_LEN +
@@ -966,14 +963,9 @@ wl_escan_merge_scan_results(struct net_device *dev, struct wl_escan_info *escan,
 	// terence 20150419: limit the max. rssi to -2 or the bss will be filtered out in android OS
 	rssi = MIN(dtoh16(bi->RSSI), RSSI_MAXVAL);
 #endif
-	chanspec = wl_chspec_driver_to_host(escan->ioctl_ver, bi->chanspec);
-	channel = wf_chspec_ctlchan(chanspec);
-	ESCAN_SCAN(dev->name, "BSSID %pM, channel %3d(%3d %sMHz), rssi %3d, SSID \"%s\"\n",
-		&bi->BSSID, channel, CHSPEC_CHANNEL(chanspec),
-		CHSPEC_IS20(chanspec)?"20":
-		CHSPEC_IS40(chanspec)?"40":
-		CHSPEC_IS80(chanspec)?"80":"160",
-		rssi, bi->SSID);
+	channel = wf_chspec_ctlchan(wl_chspec_driver_to_host(escan->ioctl_ver, bi->chanspec));
+	ESCAN_SCAN(dev->name, "BSSID=%pM, channel=%3d, RSSI=%3d, SSID=\"%s\"\n",
+		&bi->BSSID, channel, rssi, bi->SSID);
 
 	/* First entry must be the BSSID */
 	iwe.cmd = SIOCGIWAP;
@@ -1070,7 +1062,6 @@ wl_escan_get_scan(struct net_device *dev, dhd_pub_t *dhdp,
 #endif
 	char *buf = NULL;
 	struct ether_addr cur_bssid;
-	u8 ioctl_buf[WLC_IOCTL_SMLEN];
 
 	if (!extra) {
 		ESCAN_TRACE(dev->name, "extra is null\n");
@@ -1098,11 +1089,8 @@ wl_escan_get_scan(struct net_device *dev, dhd_pub_t *dhdp,
 
 	ESCAN_SCAN(dev->name, "SIOCGIWSCAN, len=%d\n", dwrq->length);
 
-	wldev_iovar_getbuf(dev, "cur_etheraddr", NULL, 0, ioctl_buf, WLC_IOCTL_SMLEN, NULL);
 	err = wldev_ioctl(dev, WLC_GET_BSSID, &cur_bssid, sizeof(cur_bssid), false);
-	if (err != BCME_NOTASSOCIATED &&
-			memcmp(&ether_null, &cur_bssid, ETHER_ADDR_LEN) &&
-			memcmp(ioctl_buf, &cur_bssid, ETHER_ADDR_LEN)) {
+	if (err != BCME_NOTASSOCIATED && memcmp(&ether_null, &cur_bssid, ETHER_ADDR_LEN)) {
 		// merge current connected bss
 		buf = kzalloc(WL_EXTRA_BUF_MAX, GFP_ATOMIC);
 		if (!buf) {
