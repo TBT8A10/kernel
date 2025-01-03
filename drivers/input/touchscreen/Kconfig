@@ -1380,7 +1380,4 @@ config TOUCHSCREEN_VTL_CT36X
 config TOUCHSCREEN_GT1X
 	tristate "GT1X touchscreens support"
 
-config TOUCHSCREEN_FAKE
-    tristate "Fake touchscreens support"
-
 endif
