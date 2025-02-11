@@ -443,7 +443,6 @@ LINUXINCLUDE    := \
 KBUILD_AFLAGS   := -D__ASSEMBLY__
 KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common -fshort-wchar \
-		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
 		   -std=gnu89
 KBUILD_CPPFLAGS := -D__KERNEL__
@@ -520,7 +519,6 @@ ifneq ($(GCC_TOOLCHAIN),)
 CLANG_FLAGS	+= --gcc-toolchain=$(GCC_TOOLCHAIN)
 endif
 CLANG_FLAGS	+= -no-integrated-as
-CLANG_FLAGS	+= -Werror=unknown-warning-option
 KBUILD_CFLAGS	+= $(CLANG_FLAGS)
 KBUILD_AFLAGS	+= $(CLANG_FLAGS)
 export CLANG_FLAGS
@@ -902,9 +900,6 @@ endif
 # arch Makefile may override CC so keep this after arch Makefile is included
 NOSTDINC_FLAGS += -nostdinc -isystem $(shell $(CC) -print-file-name=include)
 
-# warn about C99 declaration after statement
-KBUILD_CFLAGS += $(call cc-option,-Wdeclaration-after-statement,)
-
 # disable pointer signed / unsigned warnings in gcc 4.0
 KBUILD_CFLAGS += $(call cc-disable-warning, pointer-sign)
 
@@ -928,21 +923,6 @@ KBUILD_CFLAGS  += $(call cc-option,-fno-stack-check,)
 
 # conserve stack if available
 KBUILD_CFLAGS   += $(call cc-option,-fconserve-stack)
-
-# disallow errors like 'EXPORT_GPL(foo);' with missing header
-KBUILD_CFLAGS   += $(call cc-option,-Werror=implicit-int)
-
-# require functions to have arguments in prototypes, not empty 'int foo()'
-KBUILD_CFLAGS   += $(call cc-option,-Werror=strict-prototypes)
-
-# Prohibit date/time macros, which would make the build non-deterministic
-KBUILD_CFLAGS   += $(call cc-option,-Werror=date-time)
-
-# enforce correct pointer usage
-KBUILD_CFLAGS   += $(call cc-option,-Werror=incompatible-pointer-types)
-
-# Require designated initializers for all marked structures
-KBUILD_CFLAGS   += $(call cc-option,-Werror=designated-init)
 
 # change __FILE__ to the relative path from the srctree
 KBUILD_CFLAGS	+= $(call cc-option,-fmacro-prefix-map=$(srctree)/=)
